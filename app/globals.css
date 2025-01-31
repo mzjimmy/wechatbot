@@ -1,28 +1,34 @@
+/* 引入 Tailwind 的基础样式 */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* 定义全局 CSS 变量，用于主题颜色 */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #ffffff;  /* 浅色模式背景色 */
+  --foreground: #171717; /* 浅色模式前景色 */
 }
 
+/* 深色模式的颜色设置 */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0a0a0a; /* 深色模式背景色 */
+    --foreground: #ededed; /* 深色模式前景色 */
   }
 }
 
+/* 设置全局文字和背景颜色 */
 body {
   color: var(--foreground);
   background: var(--background);
 }
 
+/* 容器类的响应式内边距 */
 .container {
-  @apply px-4;
+  @apply px-4; /* 默认内边距 */
 }
 
+/* 在屏幕宽度大于 640px 时增加内边距 */
 @media (min-width: 640px) {
   .container {
     @apply px-6;
