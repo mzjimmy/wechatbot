@@ -1,12 +1,16 @@
 'use client'; // 声明这是一个客户端组件
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { fetchTodayBills } from '../services/wechatPay';
 
 // 定义任务类型接口
 interface Task {
   id: number;      // 任务唯一标识
   text: string;    // 任务内容
   completed: boolean; // 任务完成状态
+  amount?: number;        // 可选的金额字段
+  transactionId?: string; // 可选的交易ID字段
+  tradeTime?: string;     // 可选的交易时间字段
 }
 
 export default function TaskManager() {
@@ -14,6 +18,40 @@ export default function TaskManager() {
   const [tasks, setTasks] = useState<Task[]>([]);
   // 使用 useState 钩子管理输入框的值
   const [inputValue, setInputValue] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 获取微信支付账单并添加到任务列表
+  const fetchWeChatBills = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const bills = await fetchTodayBills();
+      
+      // 将账单记录转换为任务格式并添加到列表
+      const billTasks: Task[] = bills.map(bill => ({
+        id: Date.now() + Math.random(), // 生成唯一ID
+        text: `支付: ${bill.description}`,
+        completed: true, // 已完成的支付
+        amount: bill.amount,
+        transactionId: bill.transaction_id,
+        tradeTime: bill.trade_time
+      }));
+
+      // 将账单任务添加到现有任务列表
+      setTasks(prevTasks => [...prevTasks, ...billTasks]);
+    } catch (err) {
+      setError('获取微信支付账单失败');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 组件加载时获取账单
+  useEffect(() => {
+    fetchWeChatBills();
+  }, []);
 
   // 添加任务的函数
   const addTask = () => {
@@ -60,6 +98,24 @@ export default function TaskManager() {
       {/* 标题 */}
       <h1 className="text-center mb-4 text-2xl font-bold">任务管理界面</h1>
       
+      {/* 添加刷新账单按钮 */}
+      <div className="mb-4 flex justify-end">
+        <button
+          onClick={fetchWeChatBills}
+          disabled={loading}
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-gray-400"
+        >
+          {loading ? '加载中...' : '刷新支付记录'}
+        </button>
+      </div>
+
+      {/* 显示错误信息 */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+          {error}
+        </div>
+      )}
+
       {/* 输入区域 */}
       <div className="flex gap-2 mb-3">
         <input
@@ -91,10 +147,18 @@ export default function TaskManager() {
               className="p-3 flex justify-between items-center hover:bg-gray-50 cursor-pointer"
               onClick={() => toggleTask(task.id)} // 点击切换任务状态
             >
-              {/* 任务文本，完成时添加删除线样式 */}
-              <span className={task.completed ? 'line-through text-gray-500' : ''}>
-                {task.text}
-              </span>
+              <div className="flex-1">
+                {/* 任务文本，完成时添加删除线样式 */}
+                <span className={task.completed ? 'line-through text-gray-500' : ''}>
+                  {task.text}
+                </span>
+                {/* 显示支付相关信息 */}
+                {task.amount && (
+                  <div className="text-sm text-gray-500">
+                    金额: ¥{task.amount} | 时间: {task.tradeTime}
+                  </div>
+                )}
+              </div>
               {/* 删除按钮 */}
               <button
                 onClick={(e) => {
